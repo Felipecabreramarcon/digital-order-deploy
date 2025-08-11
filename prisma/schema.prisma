@@ -1,0 +1,104 @@
+generator client {
+  provider = "prisma-client-js"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id           Int         @id @default(autoincrement())
+  name         String
+  email        String      @unique
+  password     String
+  role         UserRole
+  enterpriseId Int?        @map("enterprise_id")
+  createdAt    DateTime    @default(now()) @map("created_at")
+  updatedAt    DateTime?   @updatedAt @map("updated_at")
+  deletedAt    DateTime?   @map("deleted_at")
+  addressId    Int?        @unique @map("address_id")
+  avatar       String?     @default("")
+  address      Address?    @relation(fields: [addressId], references: [id])
+  enterprise   Enterprise? @relation(fields: [enterpriseId], references: [id])
+
+  @@index([enterpriseId], map: "user_enterprise_id_index")
+  @@map("user")
+}
+
+model Enterprise {
+  id         Int        @id @default(autoincrement())
+  name       String
+  createdAt  DateTime   @default(now()) @map("created_at")
+  updatedAt  DateTime?  @updatedAt @map("updated_at")
+  deletedAt  DateTime?  @map("deleted_at")
+  addressId  Int?       @unique @map("address_id")
+  avatar     String?    @default("")
+  cnpj       String     @unique @default("")
+  email      String?    @unique
+  categories Category[]
+  address    Address?   @relation(fields: [addressId], references: [id])
+  products   Product[]
+  users      User[]
+
+  @@index([addressId], map: "enterprise_address_id_index")
+  @@map("enterprise")
+}
+
+model Address {
+  id         Int         @id @default(autoincrement())
+  street     String
+  number     String
+  city       String
+  state      String
+  zipCode    String      @map("zip_code")
+  createdAt  DateTime    @default(now()) @map("created_at")
+  updatedAt  DateTime?   @updatedAt @map("updated_at")
+  deletedAt  DateTime?   @map("deleted_at")
+  enterprise Enterprise?
+  user       User?
+
+  @@map("address")
+}
+
+model Category {
+  id           Int        @id @default(autoincrement())
+  name         String
+  description  String?
+  enterpriseId Int        @map("enterprise_id")
+  createdAt    DateTime   @default(now()) @map("created_at")
+  updatedAt    DateTime?  @updatedAt @map("updated_at")
+  deletedAt    DateTime?  @map("deleted_at")
+  enterprise   Enterprise @relation(fields: [enterpriseId], references: [id])
+  products     Product[]
+
+  @@unique([enterpriseId, name], map: "category_name_enterprise_unique")
+  @@map("category")
+}
+
+model Product {
+  id           Int        @id @default(autoincrement())
+  name         String
+  description  String?
+  price        Decimal    @db.Decimal
+  image        String?    @default("")
+  stock        Int        @default(0)
+  categoryId   Int        @map("category_id")
+  enterpriseId Int        @map("enterprise_id")
+  createdAt    DateTime   @default(now()) @map("created_at")
+  updatedAt    DateTime?  @updatedAt @map("updated_at")
+  deletedAt    DateTime?  @map("deleted_at")
+  category     Category   @relation(fields: [categoryId], references: [id])
+  enterprise   Enterprise @relation(fields: [enterpriseId], references: [id])
+
+  @@unique([enterpriseId, name], map: "product_name_enterprise_unique")
+  @@map("product")
+}
+
+enum UserRole {
+  ADMIN
+  OWNER
+  MANAGER
+  CLIENT
+}
